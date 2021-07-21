@@ -282,7 +282,12 @@ static
 void* file_open(const char* path, void* user_data)
 {
     (void)(user_data);
-    return fopen(path, "rb");
+    FILE * file = NULL;
+    if (0!=fopen_s(&file, path, "rb")) {
+        fprintf(stderr, "file path: '%s'\n", path);
+        perror("fopen_s(path,\"rb\") failed");
+    }
+    return file;
 }
 
 
