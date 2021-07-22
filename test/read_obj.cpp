@@ -39,11 +39,18 @@ public:
 
     void write(const char * path) {
         FILE * fout = fopen(path, "wb"); // todo: failure check
+        if (NULL == fout) {
+            fprintf(stderr, "file path: '%s'\n", path);
+            perror("ERROR: fopen(path,\"wb\") failed");
+            return;
+        }
         fast_obj_write(
             ptr->position_count,
             ptr->positions,
             ptr->texcoord_count,
             ptr->texcoords,
+            ptr->normal_count,
+            ptr->normals,
             ptr->face_count,
             ptr->face_vertices,
             (unsigned int*)ptr->indices,
