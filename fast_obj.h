@@ -156,6 +156,9 @@ extern "C" {
 fastObjMesh*                    fast_obj_read(const char* path);
 fastObjMesh*                    fast_obj_read_with_callbacks(const char* path, const fastObjCallbacks* callbacks, void* user_data);
 void                            fast_obj_destroy(fastObjMesh* mesh);
+// for modify data in fastObjMesh
+fastObjMesh*                    fast_obj_create();
+void *                          fast_obj_array_safe_copy(void * arr, void * src, unsigned size, unsigned itemsize);
 
 #ifdef __cplusplus
 }
@@ -277,6 +280,44 @@ static void* array_realloc(void* ptr, fastObjUInt n, fastObjUInt b)
     return (r + 2);
 }
 
+// for modify data in fastObjMesh
+fastObjMesh * fast_obj_create() {
+    fastObjMesh * m = (fastObjMesh*)(memory_realloc(0, sizeof(fastObjMesh)));
+    if (!m)
+        return 0;
+    memset(m, 0, sizeof(fastObjMesh));
+
+    /* Add dummy position/texcoord/normal */
+    array_push(m->positions, 0.0f);
+    array_push(m->positions, 0.0f);
+    array_push(m->positions, 0.0f);
+
+    array_push(m->texcoords, 0.0f);
+    array_push(m->texcoords, 0.0f);
+
+    array_push(m->normals, 0.0f);
+    array_push(m->normals, 0.0f);
+    array_push(m->normals, 1.0f);
+
+    // write counts
+    m->position_count = array_size(m->positions) / 3;
+    m->texcoord_count = array_size(m->texcoords) / 2;
+    m->normal_count   = array_size(m->normals) / 3;
+    m->face_count     = array_size(m->face_vertices);
+    m->material_count = array_size(m->materials);
+    m->group_count    = array_size(m->groups);
+
+    return m;
+}
+void* fast_obj_array_safe_copy(void * arr, void * src, unsigned size, unsigned itemsize) {
+    if(arr)
+        _array_size(arr) = 0; // without copy old data, just for speed up.
+    if (size > array_capacity(arr))
+        arr = array_realloc(arr, size - array_size(arr), itemsize);
+    memcpy(arr, src, size * itemsize);
+    _array_size(arr) = size;
+    return arr;
+}
 
 static
 void* file_open(const char* path, void* user_data)
