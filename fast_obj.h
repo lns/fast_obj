@@ -361,6 +361,36 @@ void fast_obj_triangulate(fastObjMesh* m)
     m->face_count = n_tri;
     return;
 }
+void fast_obj_debug_mem(fastObjMesh* m) // for debug
+{
+    if(!m)
+        return;
+    fprintf(stderr, "positions: (%8u, %8u) ", array_size(m->positions), array_capacity(m->positions));
+    fprintf(stderr, "texcoords: (%8u, %8u) ", array_size(m->texcoords), array_capacity(m->texcoords));
+    fprintf(stderr, "normals: (%8u, %8u)\n", array_size(m->normals), array_capacity(m->normals));
+    fprintf(stderr, "face_vertices: (%8u, %8u) ", array_size(m->face_vertices), array_capacity(m->face_vertices));
+    fprintf(stderr, "indices: (%8u, %8u)\n", array_size(m->indices), array_capacity(m->indices));
+    return;
+}
+const char * fast_obj_find_fault(fastObjMesh* m) // for debug
+{
+    if(!m)
+        return "m is nullptr.";
+    if(m->position_count != array_size(m->positions) / 3)
+        return "size mismatch: positions";
+    if(m->texcoord_count != array_size(m->texcoords) / 2)
+        return "size mismatch: texcoords";
+    if(m->normal_count != array_size(m->normals) / 3)
+        return "size mismatch: normals";
+    if(m->face_count != array_size(m->face_vertices))
+        return "size mismatch: face_vertices";
+    long n_edges = 0;
+    for(int i=0; i<m->face_count; i++)
+        n_edges += m->face_vertices[i];
+    if(n_edges != array_size(m->indices))
+        return "size mismatch: indices";
+    return nullptr;
+}
 
 static
 void* file_open(const char* path, void* user_data)
