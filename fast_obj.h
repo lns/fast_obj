@@ -318,6 +318,49 @@ void* fast_obj_array_safe_copy(void * arr, void * src, unsigned size, unsigned i
     _array_size(arr) = size;
     return arr;
 }
+void fast_obj_triangulate(fastObjMesh* m)
+{
+    if(!m)
+        return;
+    // precompute how many triangles do we need
+    long n_tri = -2 * m->face_count;
+    for(int i=0; i<m->face_count; i++)
+        n_tri += m->face_vertices[i];
+    if (n_tri == m->face_count) // all faces are triangles
+        return;
+    // make a copy of old indices in a new block of memory
+    fastObjIndex * old_indices = (fastObjIndex*)array_realloc(NULL, array_size(m->indices), sizeof(fastObjIndex));
+    memcpy(old_indices, m->indices, array_size(m->indices) * sizeof(fastObjIndex));
+    // realloc m->indices to new size
+    _array_size(m->indices) = 0;
+    if (n_tri * 3 > array_capacity(m->indices))
+        m->indices = (fastObjIndex*)array_realloc(m->indices, n_tri * 3, sizeof(fastObjIndex));
+    // triangulate: A face with (0,1,..n) will be triangulated to (0,1,2), .. (0,k,k+1), .. (0,n-1,n)
+    size_t lidx = 0; // index of old_indices
+    size_t ridx = 0; // index of new indices
+    for(int i=0; i<m->face_count; i++) {
+        unsigned int n = m->face_vertices[i];
+        for(int k=1; k<n-1; k++) {
+            m->indices[ridx++] = old_indices[lidx+0];
+            m->indices[ridx++] = old_indices[lidx+k];
+            m->indices[ridx++] = old_indices[lidx+(k+1)];
+        }
+        lidx += n;
+    }
+    _array_size(m->indices) = ridx;
+    // free
+    array_clean(old_indices);
+    // update m->face_vertices
+    _array_size(m->face_vertices) = 0;
+    if (n_tri > array_capacity(m->face_vertices))
+        m->face_vertices = (unsigned int*)array_realloc(m->face_vertices, n_tri, sizeof(unsigned int));
+    for(int i=0; i<n_tri; i++)
+        m->face_vertices[i] = 3;
+    _array_size(m->face_vertices) = n_tri;
+    // update m->face_count
+    m->face_count = n_tri;
+    return;
+}
 
 static
 void* file_open(const char* path, void* user_data)
@@ -325,8 +368,8 @@ void* file_open(const char* path, void* user_data)
     (void)(user_data);
     FILE * file = fopen(path, "rb");
     if (NULL == file) {
-        fprintf(stderr, "file path: '%s'\n", path);
-        perror("ERROR: fopen(path,\"rb\") failed");
+        fprintf(stderr, "file path: '%s'\n", path); // todo: better control of logging info
+        perror("WARN: fopen(path,\"rb\") failed");
     }
     return file;
 }
