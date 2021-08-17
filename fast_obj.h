@@ -328,7 +328,7 @@ void fast_obj_triangulate_update_group(fastObjMesh* m)
         n_indices[i] = 0;
         const fastObjGroup& g = m->groups[i];
         for(int j=0; j<n_faces[i]; j++)
-            n_indices[i] += m->face_vertices[g.face_offset + j]; 
+            n_indices[i] += m->face_vertices[g.face_offset + j];
     }
     // calculate n_faces and n_indices after triangulation
     for(int i=0; i<m->group_count; i++) {
@@ -383,6 +383,8 @@ void fast_obj_triangulate(fastObjMesh* m) // triangulate all groups
     _array_size(m->indices) = ridx;
     // free
     array_clean(old_indices);
+    // update groups
+    fast_obj_triangulate_update_group(m);
     // update m->face_vertices
     _array_size(m->face_vertices) = 0;
     if (n_tri > array_capacity(m->face_vertices))
@@ -392,8 +394,6 @@ void fast_obj_triangulate(fastObjMesh* m) // triangulate all groups
     _array_size(m->face_vertices) = n_tri;
     // update m->face_count
     m->face_count = n_tri;
-    // update groups
-    fast_obj_triangulate_update_group(m);
     return;
 }
 void fast_obj_debug_mem(fastObjMesh* m) // for debug
