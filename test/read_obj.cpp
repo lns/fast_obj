@@ -54,6 +54,8 @@ public:
             ptr->face_count,
             ptr->face_vertices,
             (unsigned int*)ptr->indices,
+            ptr->group_count,
+            ptr->groups,
             fout);
         fclose(fout);
     }

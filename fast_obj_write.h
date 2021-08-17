@@ -125,6 +125,17 @@ void fast_obj_write_f(
     }
 }
 
+void fast_obj_write_g(
+    const char * name,
+    FILE * fout)
+{
+    if(nullptr==name || strlen(name)==0)
+        return;
+    fwrite("g ", 1, 2, fout);
+    fwrite(name, 1, strlen(name), fout);
+    fwrite("\n", 1, 1, fout);
+}
+
 void fast_obj_write(
     unsigned int  position_count,
     float*        positions,
@@ -135,6 +146,8 @@ void fast_obj_write(
     unsigned int  face_count,
     unsigned int* face_vertices,
     unsigned int* indices,
+    unsigned int  group_count,
+    fastObjGroup* groups,
     FILE * fout)
 {
     const char info[256] = "# This file uses FP32 for real numbers.\n\n\0";
@@ -145,8 +158,12 @@ void fast_obj_write(
     fast_obj_write_vt(texcoord_count, texcoords, fout);
     // write normal as "vn"
     fast_obj_write_vn(normal_count, normals, fout);
-    // write faces as "f"
-    fast_obj_write_f(face_count, face_vertices, indices, fout);
+    for(unsigned int i=0; i<group_count; i++) {
+        // write group as "g"
+        fast_obj_write_g(groups[i].name, fout);
+        // write faces as "f"
+        fast_obj_write_f(face_count, face_vertices, indices, fout);
+    }
     //
     return;
 }

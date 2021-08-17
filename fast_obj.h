@@ -318,7 +318,40 @@ void* fast_obj_array_safe_copy(void * arr, void * src, unsigned size, unsigned i
     _array_size(arr) = size;
     return arr;
 }
-void fast_obj_triangulate(fastObjMesh* m)
+void fast_obj_triangulate_update_group(fastObjMesh* m)
+{
+    // compute n_faces and n_indices before triangulation
+    long* n_faces   = (long*)array_realloc(NULL, m->group_count, sizeof(long));
+    long* n_indices = (long*)array_realloc(NULL, m->group_count, sizeof(long));
+    for(int i=0; i<m->group_count; i++) {
+        n_faces[i] = m->groups[i].face_count;
+        n_indices[i] = 0;
+        const fastObjGroup& g = m->groups[i];
+        for(int j=0; j<n_faces[i]; j++)
+            n_indices[i] += m->face_vertices[g.face_offset + j]; 
+    }
+    // calculate n_faces and n_indices after triangulation
+    for(int i=0; i<m->group_count; i++) {
+        long n_faces_new = n_indices[i] - 2 * n_faces[i];
+        long n_indices_new = n_faces_new * 3;
+        n_faces[i] = n_faces_new;
+        n_indices[i] = n_indices_new;
+    }
+    // update m->groups
+    long face_offset = 0;
+    long index_offset = 0;
+    for(int i=0; i<m->group_count; i++) {
+        m->groups[i].face_count = n_faces[i];
+        m->groups[i].face_offset = face_offset;
+        m->groups[i].index_offset = index_offset;
+        face_offset += n_faces[i];
+        index_offset += n_indices[i]; 
+    }
+    // cleanup
+    array_clean(n_faces);
+    array_clean(n_indices);
+}
+void fast_obj_triangulate(fastObjMesh* m) // triangulate all groups
 {
     if(!m)
         return;
@@ -359,6 +392,8 @@ void fast_obj_triangulate(fastObjMesh* m)
     _array_size(m->face_vertices) = n_tri;
     // update m->face_count
     m->face_count = n_tri;
+    // update groups
+    fast_obj_triangulate_update_group(m);
     return;
 }
 void fast_obj_debug_mem(fastObjMesh* m) // for debug
